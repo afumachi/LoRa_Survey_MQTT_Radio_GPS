@@ -35,6 +35,7 @@ void Phy_mqtt_receive_DL() {
       PacoteDL[i] = mqtt_dl_payload[i];
     }
 
+    Serial.println("PacoteDL recebido via MQTT");
     // ADICIONADO Variáveis de recebimento do valores de rádio LoRa
     valor_novo_spreadingfactor = PacoteDL[0];  // Byte DL[0] valor de rádio LoRa de Spreading Spectrum
     valor_novo_bandwidth = PacoteDL[1];        // Byte DL[1] valor de rádio LoRa de Bandwidth

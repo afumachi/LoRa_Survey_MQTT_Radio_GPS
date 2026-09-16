@@ -32,8 +32,12 @@ BROKER        = "broker.hivemq.com"
 PORTA_MQTT    = 1883
 
 # MODIFIQUE O TOPIC_DL E TOPIC_UL de acordo com SEU_NOME
-TOPIC_DL      = "mot_lora_mqtt_A2F/gateway/downlink"   # Python publica → ESP32 assina
-TOPIC_UL      = "mot_lora_mqtt_A2F/gateway/uplink"     # ESP32 publica  → Python assina
+
+#TOPIC_DL      = "mot_lora_mqtt_FEE23/gateway/downlink"   # Python publica → ESP32 assina
+#TOPIC_UL      = "mot_lora_mqtt_FEE23/gateway/uplink"     # ESP32 publica  → Python assina
+
+TOPIC_DL      = "mot_lora_mqtt_FEE23/gateway/downlink";  #// Python → ESP32
+TOPIC_UL      = "mot_lora_mqtt_FEE23/gateway/uplink";    #// ESP32  → Python
 
 # QoS usado nos dois sentidos (DL e UL). QoS1 = "at least once": o broker
 # confirma (PUBACK) e há retransmissão se a confirmação não chegar.
@@ -42,7 +46,7 @@ MQTT_QOS    = 1
 estado_mqtt = 0
 
 # ===== Variáveis globais =====
-Tamanho_pacote = 20
+Tamanho_pacote = 30
 
 # definições de teste: configurações importantes para a bateria de testes extraídas do arquivo de parâmetros
 numero_de_medidas = 0
@@ -53,6 +57,7 @@ enlace_testado = 0
 pacote_recebido = 0
 radio_configurado = 0
 estado_lss = 0
+perda_PK_RX = 0
 
 #Camada Física
 # Variáveis Auxiliares
@@ -158,7 +163,7 @@ def on_connect(client, userdata, flags, reason_code, properties):
 
 def on_publish(client, userdata, mid, reason_code, properties):
     """Confirmação de entrega (PUBACK) do pacote DL publicado em QoS1."""
-    #print(f"[MQTT] PUBACK recebido para mid={mid} (pacote DL confirmado pelo broker).")
+    print(f"[MQTT] PUBACK recebido para mid={mid} (pacote DL confirmado pelo broker).")
 
 def on_message(client, userdata, msg):
     """Callback disparado ao receber pacote UL vindo do ESP32."""
@@ -568,7 +573,7 @@ try:
    
              Log_dados = open(filename1, 'w')
              print("Arquivo de log: %s" % filename1)
-             Cabecalho = 'Time stamp,Contador,DL_B0,DL_B1,DL_B2,DL_B3,DL_B4,DL_B5,DL_B6,DL_B7,DL_B8,DL_B9,DL_B10,DL_B11,DL_B12,DL_B13,DL_B14,DL_B15,DL_B16,DL_B17,DL_B18,DL_B19,UL_B0,UL_B1,UL_B2,UL_B3,UL_B4,UL_B5,UL_B6,UL_B7,UL_B8,UL_B9,UL_B10,UL_B11,UL_B12,UL_B13,UL_B14,UL_B15,UL_B16,UL_B17,UL_B18,UL_B19'
+             Cabecalho = 'Time stamp,Contador,DL_B0,DL_B1,DL_B2,DL_B3,DL_B4,DL_B5,DL_B6,DL_B7,DL_B8,DL_B9,DL_B10,DL_B11,DL_B12,DL_B13,DL_B14,DL_B15,DL_B16,DL_B17,DL_B18,DL_B19,DL_B20,DL_B21,DL_B22,DL_B23,DL_B24,DL_B25,DL_B26,DL_B27,DL_B28,DL_B29,UL_B0,UL_B1,UL_B2,UL_B3,UL_B4,UL_B5,UL_B6,UL_B7,UL_B8,UL_B9,UL_B10,UL_B11,UL_B12,UL_B13,UL_B14,UL_B15,UL_B16,UL_B17,UL_B18,UL_B19,UL_B20,UL_B21,UL_B22,UL_B23,UL_B24,UL_B25,UL_B26,UL_B27,UL_B28,UL_B29'
              print(Cabecalho,file=Log_dados)
              time.sleep(1)
              calculo_toa_radio_lora() # chama função cálculo ToA (Time On Air)
@@ -592,8 +597,7 @@ try:
               # =============== Camada de aplicação DL
               Comando_LED_amarelo = 0  # Inicia apagado
               # ================ Camada de Transporte DL
-              Contador_pkt_DL = 0
-              perda_PK_RX = 0
+              
               # ================ Camada de Rede DL
               #ID_sensor = input("Identificação do sensor = ")
               ID_sensor = 1
@@ -606,8 +610,7 @@ try:
               # ================ Envio de pacote de DL
               try:
               # ===================== LOOP DE ENVIO DE PACOTES =============
-                    Tempo_inicio_pacote = time.time()
-                    
+                    Tempo_inicio_pacote = time.time()                  
 
                     downlink()
                                           
@@ -639,6 +642,7 @@ try:
 
                        perda_PK_RX += 1
                        print('Cont = ', medida_atual, ' PERDEU PACOTE ')
+                       print('Pacotes perdidos = ',perda_PK_RX)
                        Dados_DL = ''
                        Dados_UL = ''
                        for i in range(Tamanho_pacote):
@@ -678,6 +682,7 @@ try:
              confirma_mudar_radio = 0
              enlace_testado = 0
              perda_geral = 0
+             perda_PK_RX = 0
              tempo_entre_medidas = 8
              toa_entre_medidas = 8
              perda_total = 0
@@ -702,6 +707,7 @@ try:
          enlace_testado = 0
          perda_geral = 0
          perda_total = 0
+         perda_PK_RX = 0
          contador_DL = 0
          contador_perda_DL = 0
          contador_UL = 0

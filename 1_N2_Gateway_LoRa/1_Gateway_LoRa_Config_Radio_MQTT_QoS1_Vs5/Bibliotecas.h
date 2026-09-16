@@ -52,7 +52,7 @@ byte PacoteUL[TAMANHO_PACOTE];
 
 // --- Configuração Rádio LoRa ---
 #define FREQUENCY_IN_HZ 915E6    // Frequência do Canal LoRa (ex: 915MHz)
-#define txPower 14               // Potência de Transmissão (dBm) [2 a 20 - padrão 14]
+#define txPower 20               // Potência de Transmissão (dBm) [2 a 20 - padrão 14]
 #define spreadingFactor 12       // Fator de Espalhamento - range de [6-12, padrão 7]
 #define signalBandwidth 125E3    // Banda do Sinal [125E3 | 250E3 | 500E3]
 #define codingRateDenominator 8  // Coding Rate (4/5) [4/6 | 4/7 | 4/8 | 4/5 |]
@@ -78,19 +78,19 @@ uint8_t SNR_UL;           // Variável inteira para enviar a SNR, que será conv
 int valor_atual_spreadingfactor = 12; // # Spreading Factor inicial = Maior espalhamento possível 12 (de 7 a 12)
 int valor_atual_bandwidth = 125E3; // # Bandwidth inicial = 125kHz (1 = 125kHz | 2 = 250kHz | 3 = 500kHz)
 int valor_atual_codingrate = 8; // # CodingRate Denominator = 5/4 (5/4 | 6/4 | 7/4 | 8/4)
-int valor_atual_potencia_radio = 20; // # TX Power = 1 a 17???
+int valor_atual_potencia_radio = 14; // # TX Power = 1 a 17???
 
 // # Configuração Nova Rádio LoRa
 int valor_novo_spreadingfactor = 12; // # Spreading Factor inicial = Maior espalhamento possível 12 (de 7 a 12)
 int valor_novo_bandwidth = 125E3; // # Bandwidth inicial = 125kHz (1 = 125kHz | 2 = 250kHz | 3 = 500kHz)
 int valor_novo_codingrate = 8; // # CodingRate Denominator = 5/4 (5/4 | 6/4 | 7/4 | 8/4)
-int valor_novo_potencia_radio = 20; // # TX Power = 1 a 17???
+int valor_novo_potencia_radio = 14; // # TX Power = 1 a 17???
 
 // # Configuração Anterior Rádio LoRa
 int valor_anterior_spreadingfactor = 12; // # Spreading Factor inicial = Maior espalhamento possível 12 (de 7 a 12)
 int valor_anterior_bandwidth = 125E3; // # Bandwidth inicial = 125kHz (1 = 125kHz | 2 = 250kHz | 3 = 500kHz)
 int valor_anterior_codingrate = 8; // # CodingRate Denominator = 5/4 (5/4 | 6/4 | 7/4 | 8/4)
-int valor_anterior_potencia_radio = 20; // # TX Power = 1 a 17???
+int valor_anterior_potencia_radio = 14; // # TX Power = 1 a 17???
 int recebe_comando_anterior_radio = 0; // # Comando de Downlink de mudança de configuração de rádio LoRa
 
 uint8_t inicia_lora_site_survey = 0;

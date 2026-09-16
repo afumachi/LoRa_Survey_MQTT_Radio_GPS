@@ -756,8 +756,8 @@ colunas_amostragem = ("medida", "timestamp", "dl_bytes", "ul_bytes")
 tabela_pacotes = ttk.Treeview(frame_tabela_amostragem, columns=colunas_amostragem, show="headings")
 tabela_pacotes.heading("medida", text="Medida")
 tabela_pacotes.heading("timestamp", text="Timestamp")
-tabela_pacotes.heading("dl_bytes", text="Pacote Downlink (20 bytes)")
-tabela_pacotes.heading("ul_bytes", text="Pacote Uplink (20 bytes)")
+tabela_pacotes.heading("dl_bytes", text="Pacote Downlink (30 bytes)")
+tabela_pacotes.heading("ul_bytes", text="Pacote Uplink (30 bytes)")
 tabela_pacotes.column("medida", width=60, anchor="center", stretch=False)
 tabela_pacotes.column("timestamp", width=160, anchor="center", stretch=False)
 tabela_pacotes.column("dl_bytes", width=420, anchor="w", stretch=True)
@@ -840,12 +840,12 @@ def atualizar_amostragem_pacotes():
                     if not linha or linha.startswith("Time stamp"):
                         continue
                     campos = [c.strip() for c in linha.split(",")]
-                    if len(campos) < 42:
+                    if len(campos) < 62:
                         continue
                     timestamp = campos[0]
                     medida = campos[1]
-                    dl_bytes = ", ".join(campos[2:22])
-                    ul_bytes = ", ".join(campos[22:42])
+                    dl_bytes = ", ".join(campos[2:32])
+                    ul_bytes = ", ".join(campos[32:62])
                     tabela_pacotes.insert("", "end", values=(medida, timestamp, dl_bytes, ul_bytes))
                     ultima_medida = medida
 
