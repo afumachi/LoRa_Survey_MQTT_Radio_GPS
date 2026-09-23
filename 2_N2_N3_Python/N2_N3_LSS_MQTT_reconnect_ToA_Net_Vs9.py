@@ -32,7 +32,7 @@ global medida_atual, numero_de_medidas, condicao_start, tempo_entre_medidas, per
 global recebe_valor_spreadingfactor, recebe_valor_bandwidth, recebe_valor_codingrate, recebe_valor_potencia_radio
 global comanda_mudar_radio, contador_pacote_DL, LSS_status, psr_geral, contador_reconfigura, confirma_mudar_radio
 global psrDL_geral, contador_perda_DL, ID_gateway, ID_sensor, Pacote_DL, pacote_recebido, estado_mqtt, radio_configurado
-global estado_lss, toa_entre_medidas, indice_dispositivo_atual
+global estado_lss, toa_entre_medidas, indice_dispositivo_atual, quantidade_de_medidas
 
 
 # ===== Configurações MQTT =====
@@ -63,6 +63,7 @@ indice_dispositivo_atual = 0
 
 # definições de teste: configurações importantes para a bateria de testes extraídas do arquivo de parâmetros
 numero_de_medidas = 0
+quantidade_de_medidas = 0
 rota = [] # neste momento é um enlace ponto a ponto, que futuramente poderá ser usada para roteamento
 condicao_start = 0
 medida_atual = 0
@@ -342,7 +343,7 @@ indice_dispositivo_atual = 0
 def downlink():
    global rssi_DL, rssi_UL, contador_UL, contador_DL, ultimo_pacote_DL, ultimo_pacote_UL
    global air_quality_indicator, Pacote_DL, medida_atual, comanda_mudar_radio, estado_lss
-   global indice_dispositivo_atual, ID_sensor
+   global indice_dispositivo_atual, ID_sensor, quantidade_de_medidas
 
    # Caminho completo do arquivo CSV de parâmetros
    caminho_csv_end_devices = os.path.join(dir_nivel4, 'end_devices_net_par.csv')
@@ -395,8 +396,8 @@ def downlink():
    Pacote_DL[10] = ID_gateway
 
    # Camada MAC
-   Pacote_DL[4] = int(numero_de_medidas / 256)  # MSB
-   Pacote_DL[5] = int(numero_de_medidas % 256)  # LSB
+   Pacote_DL[4] = int(quantidade_de_medidas / 256)  # MSB
+   Pacote_DL[5] = int(quantidade_de_medidas % 256)  # LSB
    Pacote_DL[6] = toa_entre_medidas
    Pacote_DL[7] = comanda_mudar_radio
    estado_lss = comanda_mudar_radio
@@ -532,7 +533,7 @@ def downlink():
 
 #========== UPLINK ==================
 def uplink():
-   global perda_geral, rssi_DL, rssi_UL, contador_UL, ultimo_pacote_DL
+   global perda_geral, rssi_DL, rssi_UL, contador_UL, ultimo_pacote_DL, quantidade_de_medidas
    global Pacote_UL, luminosidade, confirma_mudar_radio, snr_UL, snr_DL, st_cmd_led_amarelo
    global perda_total, contador_pacote_DL, contador_DL, medida_atual, numero_de_medidas
    global temperatura, umidade, latitude, longitude, altitude, contador_perda_DL, pacote_recebido
@@ -540,16 +541,19 @@ def uplink():
    # ======== COLETA UPLINK NO BROKER ========
    # Aguarda novo pacote UL publicado pelo Gateway (timeout = Tempo_entre_pacotes)
    Pacote_UL_novo = Pacote_UL_status.wait(timeout=toa_entre_medidas)
+   
    '''
    if Pacote_UL_novo:
       Pacote_UL = Pacote_UL_payload         
       if len(Pacote_UL) == Tamanho_pacote:
          # print('Pacote = ',medida_atual,' | Pacote UL recebido | LED = ',Comando_LED_amarelo)
    '''
+   
    if Pacote_UL_novo:
       Pacote_UL_status.clear()  # <-- Limpa o evento para permitir o próximo wait()
       Pacote_UL = Pacote_UL_payload          
       if len(Pacote_UL) == Tamanho_pacote:   
+         print('Pacote = ',medida_atual,' | Pacote UL recebido')
          # Camada MAC
          confirma_mudar_radio = Pacote_UL[7]
 
@@ -654,6 +658,7 @@ try:
          Parametros.close()
 
 
+      quantidade_de_medidas = numero_de_medidas * 3
       valor_novo_spreadingfactor = recebe_valor_spreadingfactor
       valor_novo_bandwidth = recebe_valor_bandwidth
       valor_novo_codingrate = recebe_valor_codingrate
@@ -726,15 +731,15 @@ try:
              LSS_status = 1
              
           
-          if (medida_atual < numero_de_medidas):
+          if (medida_atual < quantidade_de_medidas):
               
               LSS_status = 1
               tempo_entre_medidas = valor_tempo
              
               medida_atual = medida_atual + 1
-              print("### LSS - Medida: ",medida_atual, "de ",numero_de_medidas)
+              print("### LSS - Medida: ",medida_atual, "de ",quantidade_de_medidas)
 
-              if ((medida_atual) == (numero_de_medidas)):
+              if ((medida_atual) == (quantidade_de_medidas - 3)):
                   comanda_mudar_radio = 5  
 
               # =============== Camada de aplicação DL
