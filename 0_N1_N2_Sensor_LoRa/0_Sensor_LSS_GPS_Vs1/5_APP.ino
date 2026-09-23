@@ -77,7 +77,7 @@ void App_radio_send_UL() {
   if (gps.location.isValid()) {
     display.print("LAT: "); display.println(gps.location.lat(), 5);
     display.print("LON: "); display.println(gps.location.lng(), 5);
-    display.print("ALT: "); display.println(gps.altitude.meters(), 0);
+    //display.print("ALT: "); display.println(gps.altitude.meters(), 0);
   }
   else{
     display.println("GPS buscando...");

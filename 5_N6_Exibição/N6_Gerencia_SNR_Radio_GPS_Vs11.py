@@ -377,12 +377,33 @@ def ler_ultimo_psr():
     linha = _ler_ultima_linha_valida(os.path.join(dir_dados, "psr.tmp"))
     return float(linha) if linha else None
 
+# 16-09-26 AAF
+def ler_stats_min_max():
+    try:
+        with open(os.path.join(dir_dados, "stats.tmp"), 'r') as f:
+            linha = f.readline().strip()
+    except FileNotFoundError:
+        return None
+    if not linha:
+        return None
+    
+    def parse_float(val):
+        if not val or val == "None":
+            return None
+        try:
+            return float(val.replace(",", "."))
+        except ValueError:
+            return None
+
+    return tuple(parse_float(c) for c in linha.split()[:8])
+'''
 def ler_stats_min_max():
     try:
         with open(os.path.join(dir_dados, "stats.tmp"), 'r') as f: linha = f.readline().strip()
     except FileNotFoundError: return None
     if not linha: return None
     return tuple(float(c) if c else None for c in linha.split()[:8])
+'''
 
 def _fmt(valor, unidade=""):
     return ("{:.2f}".format(valor) + (" " + unidade if unidade else "")) if valor is not None else "--"

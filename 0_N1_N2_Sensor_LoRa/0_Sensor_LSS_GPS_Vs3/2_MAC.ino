@@ -3,8 +3,6 @@ void Mac_radio_receive_DL() {
   // Aqui pode ser adicionado o Sleep Mode
 
   contadorSS = (((PacoteDL[MAC_COUNTER_MSB])*256) + (PacoteDL[MAC_COUNTER_LSB]));
-  Serial.print("[No de Medidas]");
-  Serial.println(contadorSS);
 
   // Primeiro ciclo
     if ((recebe_comando_nova_radio == 1)){

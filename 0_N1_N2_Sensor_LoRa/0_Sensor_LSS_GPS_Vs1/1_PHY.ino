@@ -12,9 +12,10 @@ void Phy_radio_receive_DL() {
 
     primeiro_setup = 0;
     confirma_novo_radio_sensor = 0;
-    confirma_novo_radio_base = 0;
+    confirma_novo_radio_base = 10; // stand-by
     confirma_novo_radio = 0;
     recebe_comando_nova_radio = 0;
+    contador_perda_DL = 0;
 
     Serial.println("SETUP INICIAL - Sensor LoRa Maximum Distance Configuration");
 
@@ -46,6 +47,8 @@ void Phy_radio_receive_DL() {
       RSSI_dBm_DL = LoRa.packetRssi();
       SNR_DL_bruto = LoRa.packetSnr();
 
+  //RSSI_dBm_DL = LoRa.packetRssi();
+  //SNR_DL_bruto = LoRa.packetSnr();
 
       // ADICIONADO Variáveis de recebimento do valores de rádio LoRa
       valor_novo_spreadingfactor = PacoteDL[0]; // Byte DL[0] valor de rádio LoRa de Spreading Spectrum
@@ -69,7 +72,7 @@ void Phy_radio_receive_DL() {
       tempo_radio               = PacoteDL[6];
       recebe_comando_nova_radio = PacoteDL[7];
 
-
+/*
       // --- Lógica de inicio da contagem para MAC4_COMANDO == 4 ---
       if (recebe_comando_nova_radio != 0) {
 
@@ -100,6 +103,7 @@ void Phy_radio_receive_DL() {
           millis_inicio_controle = 0;
         }
       }
+*/
 
       digitalWrite(LED_VERDE_PIN, LOW); // Fim da leitura do Pacote
 
@@ -114,8 +118,8 @@ void Phy_radio_receive_DL() {
 void Phy_radio_send_UL() {
 
 
-  RSSI_dBm_DL = LoRa.packetRssi();
-  SNR_DL_bruto = LoRa.packetSnr();
+  //RSSI_dBm_DL = LoRa.packetRssi();
+  //SNR_DL_bruto = LoRa.packetSnr();
 
   // Determina o offset baseado na frequência usada
   // (Ajuste para 164 se estiver usando 433MHz)
@@ -132,6 +136,13 @@ void Phy_radio_send_UL() {
     RSSI_dBm_DL = ((Rssi_DL_bruto - offset) + (SNR_DL_bruto));
   }  
 
+
+      display.setTextSize(1);
+      display.setCursor(0, 50);
+      display.print("RSSI DL: -"); display.println(RSSI_dBm_DL, 0);
+      display.print("SNR DL: "); display.println(SNR_DL_bruto, 0);
+      // Escreve o buffer na tela Oled
+      display.display();  
 
   //--- Bloco que faz adequação da leitura de RSSI para um byte ---
 
@@ -199,7 +210,7 @@ void reset_para_setup_inicial() {
   tempo_radio             = 0;
   recebe_comando_nova_radio = 0;
   confirma_novo_radio_sensor = 0;
-  confirma_novo_radio_base = 0;
+  confirma_novo_radio_base = 10;
   confirma_novo_radio = 0;
   contador_perda_DL = 0;
   contadorUL = 0;
@@ -222,10 +233,11 @@ void RetornaConfiguracoesRadioMAX(){
 
 
     confirma_novo_radio_sensor = 0;
-    confirma_novo_radio_base = 0;
+    confirma_novo_radio_base = 10;
     confirma_novo_radio = 0;
     recebe_comando_nova_radio = 0;
     primeiro_setup = 0;
+    contador_perda_DL = 0;
 
     //Serial.println("Configurações de rádio atualizadas para MÁXIMO.");
 
@@ -247,7 +259,7 @@ void AplicarConfiguracoesRadio() {
     LoRa.idle(); // Retorna ao modo standby/recepção
 
     confirma_novo_radio_sensor = 0;
-    confirma_novo_radio_base = 0;
+    confirma_novo_radio_base = 10;
     confirma_novo_radio = 0;
     recebe_comando_nova_radio = 0;
     primeiro_setup = 0;

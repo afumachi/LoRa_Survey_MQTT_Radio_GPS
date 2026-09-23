@@ -41,3 +41,22 @@ void App_radio_send_UL() {
   Transp_radio_send_UL();
 }
 
+
+
+// --- FUNÇÃO GPS ---
+void updateGPS() {
+  // While there is data in the serial buffer, feed it to TinyGPS++
+  while (SerialGPS.available() > 0) {
+    gps.encode(SerialGPS.read());
+  }
+  // Verifica se o GPS já tem uma leitura válida de localização
+  if (!gps.location.isValid()) {
+    //Serial.println("GPS conectado, mas aguardando sinal dos satélites...");
+    //Serial.println("GPS DESCONHECIDO");  
+    gps_satelite = false;
+  }
+  else{
+    //Serial.println("GPS conectado, satélites encontrados...");          
+    gps_satelite = true;
+  }
+}

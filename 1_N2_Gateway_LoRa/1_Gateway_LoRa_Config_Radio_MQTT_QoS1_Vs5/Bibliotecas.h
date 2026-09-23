@@ -30,28 +30,53 @@ byte PacoteUL[TAMANHO_PACOTE];
 // Taxa de comunicação Serial/USB para Debug
 #define TAXA_SERIAL 115200
 
-// Identificação de Leitura do Comando do LED AMARELO
-#define CMD_LED_AMARELO 16 // BYTE de Controle de Comandar/Ligar CMD_LED_AMARELO
-
 // --- 2. Definição de Pinos (Hardware) ---
 #define PIN_LED_VERMELHO 15 // Status ENVIO por RF
 #define PIN_LED_VERDE 4     // Status de RECEBIMENTO por RF
 #define PIN_LDR 36          // Sensor (APP)
 #define PIN_BOTAO 39        // Botão do Nó Sensor
 
-// ---- DECLARAÇÃO DIAGRAMA DE PINOS DO PROJETO ----
-// Pinos utilizados para comunicação SPI entre ESP32 e RFM95 - Módulo LoRa
-#define SCK 18 // 5 PKLORA // 18 Placa Pessoal
-#define MISO 19			
-#define MOSI 23 // 27 PKLORA		// 23 Placa pessoal
+#if defined(PKLORA)
+  // ---- DECLARAÇÃO DIAGRAMA DE PINOS DO PROJETO ----
+  // Pinos utilizados para comunicação SPI entre ESP32 e RFM95 - Módulo LoRa
 
-// Pinos do RFM95 - Módulo LoRa
-#define SS 5 // 18 PKLORA // 5 Placa pessoal
-#define RST 14			
-#define DIO0 26
+  // ============= Pinagem na placa da PK-LoRa da ligação do RFM95 com o ESP32
+  #define SCK_PIN   5
+  #define MISO_PIN  19
+  #define MOSI_PIN  27
+  #define NSS_PIN   18
+  #define RST_PIN   14
+  #define DIO0_PIN  26
+  #define DIO1_PIN  35
+  #define DIO2_PIN  34
+
+#elif defined(AAFLORA)
+
+
+  //#define SCK 18 // 5 PKLORA // 18 Placa Pessoal
+  //#define MISO 19			
+  //#define MOSI 23 // 27 PKLORA		// 23 Placa pessoal
+
+  // Pinos do RFM95 - Módulo LoRa
+  //#define SS 5 // 18 PKLORA // 5 Placa pessoal	
+
+  // ============= Pinagem na placa da PK-LoRa da ligação do RFM95 com o ESP32
+  #define SCK_PIN   18
+  #define MISO_PIN  19
+  #define MOSI_PIN  23
+  #define NSS_PIN   5
+  #define RST_PIN   14
+  #define DIO0_PIN  26
+  #define DIO1_PIN  35
+  #define DIO2_PIN  34
+
+
+#else
+  #error "Por favor, definir a placa de hardware  (PKLORA_ESP32 ou PKLORA_NODEMCU) no topo deste código!"
+#endif
 
 // --- Configuração Rádio LoRa ---
-#define FREQUENCY_IN_HZ 915E6    // Frequência do Canal LoRa (ex: 915MHz)
+#define FREQUENCY_IN_HZ 903E6    // Frequência do Canal LoRa (ex: 915MHz)
 #define txPower 20               // Potência de Transmissão (dBm) [2 a 20 - padrão 14]
 #define spreadingFactor 12       // Fator de Espalhamento - range de [6-12, padrão 7]
 #define signalBandwidth 125E3    // Banda do Sinal [125E3 | 250E3 | 500E3]

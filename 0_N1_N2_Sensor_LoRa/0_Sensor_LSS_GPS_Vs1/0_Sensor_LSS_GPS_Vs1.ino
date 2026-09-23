@@ -4,6 +4,22 @@
   Hardware: PKLoRa ESP32
 */
 
+/*
+// Máquina de Estado_DL:
+// 10 => Estado Inicial Sem Enlace - Sem Recepção de DL - Sem request UL (standy-by)
+// confirma_novo_radio_base = 10; // AAF 17-09 inicio do Estado_DL == 10
+
+// 1 => Mudança de Rádio request UL
+
+// 3 => Teste de Enlace request UL
+
+// 4 => LSS request UL
+
+// 5 => LSS último Pacote request UL
+// após send UL, confirma_novo_radio_base = 10;
+
+*/
+
 //=======================================================================
 //                     1 - Bibliotecas
 //=======================================================================
@@ -22,6 +38,8 @@
 #define NSS_PIN   18
 #define RST_PIN   14
 #define DIO0_PIN  26
+//#define DIO1_PIN  35
+//#define DIO2_PIN  34
 
 // ============= CAMADA FÍSICA
 // Parâmetros do LoRa
@@ -175,28 +193,26 @@ void loop() {
     
   // --- Controle de timeout do Comando 4 ---
   // Executado a cada iteração do loop, independente de novo pacote chegar
+/*
+
   if (controle_ativo) {
     unsigned long tempo_limite_ms = (unsigned long)tempo_radio * 50UL * 1000UL; // 10x o valor recebido em MAC3_TEMPO
 
     if (millis() - millis_inicio_controle >= tempo_limite_ms) {
       reset_para_setup_inicial(); // Timeout atingido → volta ao SETUP
     }
+
   }
-   
-  unsigned long tempo_standby_ms = 2UL * time_out_lora_dl; // 2 min. sem Pacotes DL sobe para MAX  
 
-  if (millis() - millis_standby_controle >= tempo_standby_ms) {
+*/   
+  unsigned long tempo_standby_ms = 5UL * time_out_lora_dl; // 20 min. sem Pacotes DL sobe para MAX  
+
+  if (millis() - millis_standby_controle >= tempo_standby_ms ) {
     Serial.println("TEMPO SEM RECEBER PACOTES - Time-Out");
-    Serial.println("Voltando a Configuração LoRa BDC");
-
+    Serial.println("Voltando a Configuração LoRa MDC");
     millis_standby_controle = millis();
     reset_para_setup_inicial(); // Timeout atingido → volta ao SETUP
   }  
-
-  if ((confirma_novo_radio_base != 4) & (confirma_novo_radio_base != 5)){ 
-    millis_contador_DL = millis();
-  }
-
 
   // Lê os caracteres do GPS a cada 200 [ms]
   unsigned long tempo_sensores_ms = 200UL; // 200 ms
@@ -208,7 +224,16 @@ void loop() {
     millis_gps_controle = millis(); 
   }
 
-
   Phy_radio_receive_DL(); // Função que recebe os pacotes pelo rádio
+
+/*
+  unsigned long tempo_pacoteDL_ms = (unsigned long)tempo_radio * 1UL * 1500UL; // 1,5x o valor recebido em MAC3_TEMPO
+
+  if ((confirma_novo_radio_base != 10) & ((millis() - millis_contador_DL) >= tempo_pacoteDL_ms)) {
+    millis_contador_DL = millis();
+    Perda_DL = 1;
+    Transp_radio_receive_DL()
+  }
+*/
 
 }

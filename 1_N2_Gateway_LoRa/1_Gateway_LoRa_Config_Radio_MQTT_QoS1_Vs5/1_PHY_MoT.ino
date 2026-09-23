@@ -50,7 +50,7 @@ void Phy_mqtt_receive_DL() {
     } 
     
     valor_novo_codingrate = PacoteDL[2];         // Byte DL[2] valor de rádio LoRa de CodingRate
-    valor_novo_potencia_radio = PacoteDL[3];     // Byte DL[3] valor de rádio LoRa de Potência de Rádio LoRa
+    valor_novo_potencia_radio = 20;//PacoteDL[3];     // Byte DL[3] valor de rádio LoRa de Potência de Rádio LoRa
     tempo_radio = PacoteDL[6];                   // Byte DL[6] Recebe tempo de radio tx rx
     recebe_comando_nova_radio = PacoteDL[7];     // Byte DL[7] Recebe comando de reconfiguração de Rádio LoRa
 
@@ -97,6 +97,7 @@ void Phy_radio_send_DL() {
 
   // Pisca o LED de transmissão de pacote DL
   digitalWrite(PIN_LED_VERMELHO, HIGH);  // Início da Transmissão
+  digitalWrite(PIN_LED_VERDE, HIGH);  // Início da Transmissão
 
   LoRa.beginPacket();  // start packet
   for (int i = 0; i < TAMANHO_PACOTE; i++) {
@@ -106,6 +107,7 @@ void Phy_radio_send_DL() {
 
   // Pisca o LED de transmissão de pacote DL
   digitalWrite(PIN_LED_VERMELHO, LOW);  // FIM da Transmissão
+  digitalWrite(PIN_LED_VERDE, LOW);  // Início da Transmissão
 
 }
 
@@ -124,6 +126,7 @@ void Phy_radio_receive_UL() {
   if (packetSize) {
 
     digitalWrite(PIN_LED_VERDE, HIGH);  // Apaga Led Verde Indicando Inicio da leitura do Pacote
+    digitalWrite(PIN_LED_VERMELHO, HIGH);  // FIM da Transmissão
 
     // Realiza a leitura caso Payload do Pacote seja compatível com o Pacote de 52 Bytes
     if (packetSize >= TAMANHO_PACOTE) {
@@ -144,6 +147,7 @@ void Phy_radio_receive_UL() {
       // Esta é uma função originalmente da camada de rede, mas existe um cross-layer para verificação do endereço de destino, recebendo somente os pacotes que são destinados para a base
   
       digitalWrite(PIN_LED_VERDE, LOW);  // Fim da leitura do Pacote
+      digitalWrite(PIN_LED_VERMELHO, LOW);  // FIM da Transmissão
       //Serial.println("Pacote UPLINK Recebido");
 
       // Garante que Nó Sensor também recebeu comando de alteração de rádio e confirmou
