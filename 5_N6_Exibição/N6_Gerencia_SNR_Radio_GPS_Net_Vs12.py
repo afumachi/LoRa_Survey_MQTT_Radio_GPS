@@ -22,6 +22,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import math
 
+# Net
 import pandas as pd # Adicione junto aos outros imports
 
 style.use("ggplot")
@@ -37,6 +38,10 @@ arquivo_param_prop = os.path.join(dir_nivel4, "parametros_propagacao.txt")
 dir_dados = os.path.join(os.path.dirname(__file__), '../3_N4_Armazenamento/Dados_Processados/')
 arquivo_gps_tmp = os.path.join(dir_dados, "gps.tmp")
 arquivo_prop_tmp = os.path.join(dir_dados, "propagacao.tmp")
+
+# Net
+# Caminho para o CSV gerado pelo N4/N5
+arquivo_csv_end_devices = os.path.join(dir_nivel4, "end_devices_net_par.csv")
 
 # Valores de fallback padrão - GPS
 GW_LAT_DEFAULT = -23.005380
@@ -75,6 +80,36 @@ with open(pasta_parametros, 'w') as parametros:
 
 estado_lss = "0"
 
+
+# NET
+def ler_end_devices():
+    """Lê a lista de End Devices cadastrados no CSV para popular o Dropdown."""
+    end_devices = []
+    if os.path.exists(arquivo_csv_end_devices):
+        try:
+            df_devices = pd.read_csv(arquivo_csv_end_devices)
+            if "endereco_rede" in df_devices.columns:
+                for val in df_devices["endereco_rede"]:
+                    val_str = str(val).strip()
+                    if val_str.startswith("0x") or val_str.startswith("0X"):
+                        end_devices.append(int(val_str, 16))
+                    else:
+                        end_devices.append(int(val_str))
+        except Exception as e:
+            print(f"[ERRO] Falha ao ler CSV: {e}")
+    
+    # Se o CSV falhar ou estiver vazio, garante o ID 1 como fallback
+    if not end_devices:
+        end_devices = [1]
+    return sorted(list(set(end_devices)))
+
+def get_tmp_path(nome_base):
+    """Monta o caminho dinâmico do arquivo com o prefixo do End Device."""
+    # end_device_selecionado é uma StringVar definida na interface do Tkinter
+    dev_id = end_device_selecionado.get()
+    return os.path.join(dir_dados, f"{dev_id}_{nome_base}")
+
+
 # =============================================================================
 # FUNÇÕES DE LEITURA (GPS E PROPAGAÇÃO)
 # =============================================================================
@@ -107,9 +142,11 @@ def ler_gateway_gps():
     return gw_lat, gw_lon, gw_alt
 
 def ler_ultimo_gps():
-    caminho_arquivo = arquivo_gps_tmp
-    if not os.path.exists(caminho_arquivo) and os.path.exists("gps.tmp"):
-        caminho_arquivo = "gps.tmp"
+
+    # Net caminho_arquivo = arquivo_gps_tmp
+    caminho_arquivo = get_tmp_path("gps.tmp") # Substitui o caminho estático
+    #if not os.path.exists(caminho_arquivo) and os.path.exists("gps.tmp"):
+    #    caminho_arquivo = "gps.tmp"
     if not os.path.exists(caminho_arquivo):
         return None
     try:
@@ -147,7 +184,10 @@ def ler_parametros_propagacao():
     return params
 
 def ler_resultado_propagacao():
-    if not os.path.exists(arquivo_prop_tmp):
+    #Net 
+    #if not os.path.exists(arquivo_prop_tmp):
+    caminho_arquivo = get_tmp_path("propagacao.tmp") # Substitui o caminho estático
+    if not os.path.exists(caminho_arquivo):
         return None
     try:
         with open(arquivo_prop_tmp, "r") as f:
@@ -164,7 +204,9 @@ def atualizar_grafico(ax1, ax2, ax3, ax4, canvas1, canvas2, canvas3, canvas4, ra
     psr, taxa_teorica, taxa_calculada = [], [], []
 
     try:
-        with open(os.path.join(dir_dados, "rssi.tmp"), 'r') as f:
+        # Net
+        #with open(os.path.join(dir_dados, "rssi.tmp"), 'r') as f:
+        with open(get_tmp_path("rssi.tmp"), 'r') as f: # <- Modificado
             for linha in f:
                 linha = linha.strip()
                 if linha:
@@ -179,7 +221,9 @@ def atualizar_grafico(ax1, ax2, ax3, ax4, canvas1, canvas2, canvas3, canvas4, ra
     except FileNotFoundError: pass
 
     try:
-        with open(os.path.join(dir_dados, "psr.tmp"), 'r') as f:
+        # Net
+        # with open(os.path.join(dir_dados, "psr.tmp"), 'r') as f:
+        with open(get_tmp_path("psr.tmp"), 'r') as f: # <- Modificado        
             for linha in f:
                 linha = linha.strip()
                 if linha:
@@ -188,7 +232,9 @@ def atualizar_grafico(ax1, ax2, ax3, ax4, canvas1, canvas2, canvas3, canvas4, ra
     except FileNotFoundError: pass
 
     try:
-        with open(os.path.join(dir_dados, "taxa_dados.tmp"), 'r') as f:
+        # Net
+        # with open(os.path.join(dir_dados, "taxa_dados.tmp"), 'r') as f:
+        with open(get_tmp_path("taxa_dados.tmp"), 'r') as f: # <- Modificado
             for linha in f:
                 linha = linha.strip()
                 if linha:
@@ -281,6 +327,10 @@ except Exception:
     try: raiz.attributes('-zoomed', True)
     except Exception: pass
 
+# Net
+# Variável que armazenará o End Device atual escolhido pelo operador
+end_device_selecionado = StringVar(value="1")
+
 notebook = ttk.Notebook(raiz)
 notebook.pack(fill=BOTH, expand=True, padx=5, pady=5)
 
@@ -293,8 +343,29 @@ style_ttk.configure("TNotebook.Tab", font=("Arial", 10, "bold"), padding=[12, 6]
 aba_gerencia = Frame(notebook, bg="#F0F0F0")
 notebook.add(aba_gerencia, text="  📡 LoRa Site Survey - Parâmetros de Rádio ")
 
+# Net
+# >>> NOVO: FRAME DO DROPDOWN MENU <<<
+frame_seletor = Frame(aba_gerencia, bg="#F0F0F0")
+frame_seletor.place(x=10, y=10, width=640, height=40)
+
+Label(frame_seletor, text="End Device (Nó Sensor):", font=("Arial", 12, "bold"), bg="#F0F0F0").pack(side=LEFT)
+
+lista_ids = [str(dev) for dev in ler_end_devices()]
+combo_devices = ttk.Combobox(frame_seletor, textvariable=end_device_selecionado, values=lista_ids, state="readonly", width=15, font=("Arial", 12))
+combo_devices.pack(side=LEFT, padx=10)
+if lista_ids:
+    combo_devices.current(0) # Define o endereço 1 como inicial
+# >>> FIM NOVO FRAME <<<
+
+# Net
+#reg_parametrizacao = Frame(master=aba_gerencia, borderwidth=1, relief='sunken', bg="#F0F0F0")
+# Net
+#reg_parametrizacao.place(x=10, y=10, width=300, height=340)
+
+# AJUSTE NAS COORDENADAS 'Y' (Descer os frames originais em 50 pixels)
 reg_parametrizacao = Frame(master=aba_gerencia, borderwidth=1, relief='sunken', bg="#F0F0F0")
-reg_parametrizacao.place(x=10, y=10, width=300, height=340)
+reg_parametrizacao.place(x=10, y=60, width=300, height=340) # Era y=10, virou y=60
+# Net
 
 Label(reg_parametrizacao, font=("Arial", 14, "bold"), text="Configurações LoRa", padx=5, pady=5, bg="#F0F0F0").pack(side=TOP, anchor="n")
 
@@ -352,9 +423,14 @@ btn_iniciar = Button(reg_parametrizacao, text="INICIAR", font=("Arial", 12, "bol
 btn_iniciar.place(x=25, y=260)
 btn_parar = Button(reg_parametrizacao, text="PARAR", font=("Arial", 12, "bold"), width=10, command=lambda: grava_comandos(0))
 btn_parar.place(x=155, y=260)
-    
+
+# Net    
+#reg_estatisticas = Frame(master=aba_gerencia, borderwidth=1, relief='sunken', bg="#F0F0F0")
+#reg_estatisticas.place(x=10, y=360, width=300, relheight=1.0, height=400)
+
 reg_estatisticas = Frame(master=aba_gerencia, borderwidth=1, relief='sunken', bg="#F0F0F0")
-reg_estatisticas.place(x=10, y=360, width=300, relheight=1.0, height=400)
+reg_estatisticas.place(x=10, y=410, width=300, relheight=1.0, height=400) # Era y=360, virou y=410
+
 Label(reg_estatisticas, font=("Arial", 12, "bold"), text="RSSI / SNR / PSR (DL / UL)", bg="#F0F0F0").pack(side=TOP, anchor="n", pady=(6, 4))
 texto_estatisticas = Text(reg_estatisticas, font=("Consolas", 9), bg="white", fg="black", wrap="none", relief="flat", state="disabled")
 texto_estatisticas.pack(side=TOP, fill="both", expand=True, padx=6, pady=(0, 6))
@@ -368,7 +444,9 @@ def _ler_ultima_linha_valida(caminho):
     return None
 
 def ler_ultimo_valor_rssi_snr():
-    linha = _ler_ultima_linha_valida(os.path.join(dir_dados, "rssi.tmp"))
+    linha = _ler_ultima_linha_valida(get_tmp_path("rssi.tmp")) # <- Modificado
+    # Net
+    #linha = _ler_ultima_linha_valida(os.path.join(dir_dados, "rssi.tmp"))
     if not linha: return None
     try:
         partes = linha.split()
@@ -376,13 +454,17 @@ def ler_ultimo_valor_rssi_snr():
     except (ValueError, IndexError): return None
 
 def ler_ultimo_psr():
-    linha = _ler_ultima_linha_valida(os.path.join(dir_dados, "psr.tmp"))
+    # Net
+    #linha = _ler_ultima_linha_valida(os.path.join(dir_dados, "psr.tmp"))
+    linha = _ler_ultima_linha_valida(get_tmp_path("psr.tmp")) # <- Modificado
     return float(linha) if linha else None
 
 # 16-09-26 AAF
 def ler_stats_min_max():
     try:
-        with open(os.path.join(dir_dados, "stats.tmp"), 'r') as f:
+        # Net
+        #with open(os.path.join(dir_dados, "stats.tmp"), 'r') as f:
+        with open(get_tmp_path("stats.tmp"), 'r') as f: # <- Modificado
             linha = f.readline().strip()
     except FileNotFoundError:
         return None
@@ -452,8 +534,12 @@ def atualizar_texto_estatisticas():
 
 atualizar_texto_estatisticas()
 
+# Net
+#reg_amostragem = Frame(master=aba_gerencia, borderwidth=1, relief='sunken', bg="#F0F0F0")
+#reg_amostragem.place(x=320, y=10, relwidth=1.0, width=-330, relheight=1.0, height=-20)
 reg_amostragem = Frame(master=aba_gerencia, borderwidth=1, relief='sunken', bg="#F0F0F0")
-reg_amostragem.place(x=320, y=10, relwidth=1.0, width=-330, relheight=1.0, height=-20)
+reg_amostragem.place(x=320, y=60, relwidth=1.0, width=-330, relheight=1.0, height=-70) # Era y=10, virou y=60
+
 
 frame_cabecalho_amostragem = Frame(reg_amostragem, bg="#F0F0F0")
 frame_cabecalho_amostragem.pack(side=TOP, fill="x", padx=8, pady=(8, 4))
@@ -781,6 +867,167 @@ class VisualizadorGPS:
 
 # Instancia a interface de GPS anexando-a ao Notebook já criado
 app_gps = VisualizadorGPS(notebook, raiz)
+
+
+# Net 23-09-2026
+# =============================================================================
+# ABA 6: CADASTRO DE END DEVICES
+# =============================================================================
+aba_end_devices = Frame(notebook, bg="#F0F0F0")
+notebook.add(aba_end_devices, text="  💻 Nó Sensores (End Devices)  ")
+
+# ---------------------------------------------------------
+# FRAME ESQUERDO: Tabela (Lista de Dispositivos)
+# ---------------------------------------------------------
+frame_tabela_ed = Frame(aba_end_devices, bg="#F0F0F0")
+frame_tabela_ed.pack(side=LEFT, fill=BOTH, expand=True, padx=20, pady=20)
+
+Label(frame_tabela_ed, text="End Devices Cadastrados no CSV", font=("Arial", 14, "bold"), bg="#F0F0F0").pack(pady=(0, 10))
+
+# Definição de todas as colunas do CSV
+colunas_ed = ("endereco_rede", "spreading_factor", "bandwidth", "coding_rate", "potencia_tx")
+tabela_ed = ttk.Treeview(frame_tabela_ed, columns=colunas_ed, show="headings", height=20)
+
+# Cabeçalhos da Tabela
+tabela_ed.heading("endereco_rede", text="ID da Rede")
+tabela_ed.heading("spreading_factor", text="Spreading Factor (SF)")
+tabela_ed.heading("bandwidth", text="Bandwidth (BW)")
+tabela_ed.heading("coding_rate", text="Coding Rate (CR)")
+tabela_ed.heading("potencia_tx", text="Potência TX")
+
+# Alinhamento e largura das colunas
+for col in colunas_ed:
+    tabela_ed.column(col, anchor="center", width=120)
+
+tabela_ed.pack(side=LEFT, fill=BOTH, expand=True)
+
+# Barra de rolagem para a tabela
+scroll_ed = ttk.Scrollbar(frame_tabela_ed, orient="vertical", command=tabela_ed.yview)
+tabela_ed.configure(yscrollcommand=scroll_ed.set)
+scroll_ed.pack(side=RIGHT, fill=Y)
+
+
+# ---------------------------------------------------------
+# FRAME DIREITO: Controles (Adicionar / Excluir / Salvar)
+# ---------------------------------------------------------
+frame_controles_ed = Frame(aba_end_devices, bg="#F0F0F0", width=350)
+frame_controles_ed.pack(side=RIGHT, fill=Y, padx=20, pady=20)
+
+Label(frame_controles_ed, text="Gerenciar End Devices", font=("Arial", 14, "bold"), bg="#F0F0F0").pack(pady=(0, 15))
+
+# Campos de Entrada (Entries)
+def criar_campo(texto):
+    Label(frame_controles_ed, text=texto, bg="#F0F0F0", font=("Arial", 10, "bold")).pack(anchor="w", pady=(5, 0))
+    entry = Entry(frame_controles_ed, font=("Arial", 11))
+    entry.pack(fill=X, pady=(0, 5))
+    return entry
+
+entry_ed_id  = criar_campo("Endereço de Rede (ID): *")
+entry_ed_sf  = criar_campo("Spreading Factor (SF):")
+entry_ed_bw  = criar_campo("Bandwidth (BW):")
+entry_ed_cr  = criar_campo("Coding Rate (CR):")
+entry_ed_ptx = criar_campo("Potência TX:")
+
+
+# ---------------------------------------------------------
+# FUNÇÕES DA ABA
+# ---------------------------------------------------------
+def carregar_tabela_ed():
+    # Limpa a tabela atual
+    for item in tabela_ed.get_children():
+        tabela_ed.delete(item)
+        
+    if os.path.exists(arquivo_csv_end_devices):
+        try:
+            df_devices = pd.read_csv(arquivo_csv_end_devices)
+            
+            # Garante que todas as colunas existam no dataframe carregado, preenchendo com vazio se faltar alguma
+            for col in colunas_ed:
+                if col not in df_devices.columns:
+                    df_devices[col] = ""
+
+            # Insere as linhas na tabela
+            for _, row in df_devices.iterrows():
+                tabela_ed.insert("", "end", values=(
+                    row["endereco_rede"],
+                    row["spreading_factor"],
+                    row["bandwidth"],
+                    row["coding_rate"],
+                    row["potencia_tx"]
+                ))
+        except Exception as e:
+            print(f"Erro ao carregar CSV na tabela: {e}")
+
+def adicionar_ed():
+    novo_id = entry_ed_id.get().strip()
+    sf = entry_ed_sf.get().strip()
+    bw = entry_ed_bw.get().strip()
+    cr = entry_ed_cr.get().strip()
+    ptx = entry_ed_ptx.get().strip()
+
+    if novo_id:
+        # Insere na visualização da tabela
+        tabela_ed.insert("", "end", values=(novo_id, sf, bw, cr, ptx))
+        
+        # Limpa os campos após inserir
+        for entry in (entry_ed_id, entry_ed_sf, entry_ed_bw, entry_ed_cr, entry_ed_ptx):
+            entry.delete(0, END)
+    else:
+        messagebox.showwarning("Aviso", "O Endereço de Rede (ID) é obrigatório.")
+
+def excluir_ed():
+    selecionados = tabela_ed.selection()
+    if not selecionados:
+        messagebox.showwarning("Aviso", "Selecione um End Device na tabela para excluir.")
+        return
+    for item in selecionados:
+        tabela_ed.delete(item)
+
+def salvar_ed():
+    dados_para_salvar = []
+    
+    # Extrai todos os valores da tabela visual
+    for item in tabela_ed.get_children():
+        valores = tabela_ed.item(item, 'values')
+        dados_para_salvar.append({
+            "endereco_rede": valores[0],
+            "spreading_factor": valores[1],
+            "bandwidth": valores[2],
+            "coding_rate": valores[3],
+            "potencia_tx": valores[4]
+        })
+    
+    # Converte de volta para DataFrame usando todas as colunas
+    df_salvar = pd.DataFrame(dados_para_salvar, columns=colunas_ed)
+    
+    try:
+        # Salva o arquivo CSV
+        df_salvar.to_csv(arquivo_csv_end_devices, index=False)
+        messagebox.showinfo("Sucesso", f"End Devices salvos com sucesso em:\n{arquivo_csv_end_devices}")
+        
+        # Atualiza a lista da Aba 1 (se a função ler_end_devices e combo_devices existirem no seu escopo)
+        lista_atualizada = [str(dev) for dev in ler_end_devices()]
+        combo_devices['values'] = lista_atualizada
+        if lista_atualizada and end_device_selecionado.get() not in lista_atualizada:
+            combo_devices.current(0)
+            
+    except Exception as e:
+        messagebox.showerror("Erro", f"Erro ao salvar arquivo CSV: {e}")
+
+# ---------------------------------------------------------
+# BOTÕES DE AÇÃO
+# ---------------------------------------------------------
+Label(frame_controles_ed, text="", bg="#F0F0F0").pack(pady=5) # Espaçador
+
+Button(frame_controles_ed, text="➕ Adicionar à Lista", font=("Arial", 11), command=adicionar_ed).pack(fill=X, pady=5)
+Button(frame_controles_ed, text="❌ Excluir Selecionado", font=("Arial", 11), command=excluir_ed).pack(fill=X, pady=5)
+
+Label(frame_controles_ed, text="----------------------------------------", bg="#F0F0F0", fg="gray").pack(pady=10)
+
+Button(frame_controles_ed, text="💾 Salvar Alterações no Arquivo", font=("Arial", 11, "bold"), bg="#4CAF50", fg="white", command=salvar_ed).pack(fill=X, pady=10)
+
+# Inicializa a tabela carregando o CSV na primeira execução
+carregar_tabela_ed()
 
 # =============================================================================
 # CALLBACK DE FECHAR JANELA

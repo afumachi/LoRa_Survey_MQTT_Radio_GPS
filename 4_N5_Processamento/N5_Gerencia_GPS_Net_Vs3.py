@@ -222,7 +222,9 @@ while True:
             
             # Endereço do End Device está no Byte 10 do Uplink (UL_B10) -> partes[42]
             # Ou no Byte 8 do Downlink (DL_B8) -> partes[10]
-            dev_id = int(partes[42]) if len(partes) > 42 else int(partes[10])
+            # Net
+            #dev_id = int(partes[42]) if len(partes) > 42 else int(partes[10])
+            dev_id = int(partes[10]) if len(partes) > 42 else int(partes[10])
 
             # Se o dispositivo não estiver no dicionário, inclui dinamicamente
             if dev_id not in dados_dev:
