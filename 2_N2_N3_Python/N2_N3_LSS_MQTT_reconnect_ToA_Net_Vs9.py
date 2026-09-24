@@ -142,6 +142,13 @@ os.makedirs(caminho_dados, exist_ok=True)
 os.makedirs(caminho_parametros, exist_ok=True)
 caminho_led = os.path.join(caminho_parametros, "cmd_led_amarelo.txt")
 
+
+# Definindo o caminho do arquivo CSV com base no diretório nivel4
+caminho_csv_end_devices = os.path.join(dir_nivel4, 'end_devices_net_par.csv')
+
+# Declaração da variável inteira
+total_end_devices: int = 0
+
 #Atualiza arquivo de Parâmetros
 pasta_parametros = os.path.join(dir_nivel4, 'PARAMETROS.txt')
 parametros = open(pasta_parametros, 'w')
@@ -333,20 +340,14 @@ def cmd_lora():
    uplink()
 
 #========== DOWNLINK ================
-
-# Adicione esta variável global junto com as demais no início do script:
-indice_dispositivo_atual = 0
-
-# ... (restante das variáveis) ...
-
-#========== DOWNLINK ================
 def downlink():
    global rssi_DL, rssi_UL, contador_UL, contador_DL, ultimo_pacote_DL, ultimo_pacote_UL
    global air_quality_indicator, Pacote_DL, medida_atual, comanda_mudar_radio, estado_lss
    global indice_dispositivo_atual, ID_sensor, quantidade_de_medidas
 
    # Caminho completo do arquivo CSV de parâmetros
-   caminho_csv_end_devices = os.path.join(dir_nivel4, 'end_devices_net_par.csv')
+   # AAF
+   # caminho_csv_end_devices = os.path.join(dir_nivel4, 'end_devices_net_par.csv')
    
    # Leitura do endereço do nó sensor a partir do CSV
    if os.path.exists(caminho_csv_end_devices):
@@ -657,8 +658,22 @@ try:
          if len(line) > 0: valor_tempo = int(line)
          Parametros.close()
 
+         # AAF 23-09-2026
+         if os.path.exists(caminho_csv_end_devices):
+             try:
+                 df_devices = pd.read_csv(caminho_csv_end_devices)
+                 # O número de end devices cadastrados corresponde à quantidade de linhas no DataFrame
+                 total_end_devices = len(df_devices)
+                 #print(f"Total de end devices cadastrados: {total_end_devices}")
+             except Exception as e:
+                 print(f"Erro ao ler o arquivo End Devices CSV: {e}")
+                 total_end_devices = 0
+         else:
+             print(f"Arquivo {caminho_csv_end_devices} não foi encontrado.")
+             total_end_devices = 0
 
-      quantidade_de_medidas = numero_de_medidas * 3
+
+      quantidade_de_medidas = numero_de_medidas * total_end_devices # AAF 23-09-2026
       valor_novo_spreadingfactor = recebe_valor_spreadingfactor
       valor_novo_bandwidth = recebe_valor_bandwidth
       valor_novo_codingrate = recebe_valor_codingrate
@@ -739,7 +754,7 @@ try:
               medida_atual = medida_atual + 1
               print("### LSS - Medida: ",medida_atual, "de ",quantidade_de_medidas)
 
-              if ((medida_atual) == (quantidade_de_medidas - 3)):
+              if ((medida_atual) == (quantidade_de_medidas - total_end_devices)): # AAF 23-09-2026
                   comanda_mudar_radio = 5  
 
               # =============== Camada de aplicação DL

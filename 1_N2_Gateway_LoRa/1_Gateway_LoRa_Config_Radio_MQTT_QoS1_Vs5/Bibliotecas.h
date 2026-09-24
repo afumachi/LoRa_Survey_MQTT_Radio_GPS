@@ -78,9 +78,9 @@ byte PacoteUL[TAMANHO_PACOTE];
 // --- Configuração Rádio LoRa ---
 #define FREQUENCY_IN_HZ 903E6    // Frequência do Canal LoRa (ex: 915MHz)
 #define txPower 20               // Potência de Transmissão (dBm) [2 a 20 - padrão 14]
-#define spreadingFactor 12       // Fator de Espalhamento - range de [6-12, padrão 7]
-#define signalBandwidth 125E3    // Banda do Sinal [125E3 | 250E3 | 500E3]
-#define codingRateDenominator 8  // Coding Rate (4/5) [4/6 | 4/7 | 4/8 | 4/5 |]
+#define spreadingFactor 7       // Fator de Espalhamento - range de [6-12, padrão 7]
+#define signalBandwidth 500E3    // Banda do Sinal [125E3 | 250E3 | 500E3]
+#define codingRateDenominator 5  // Coding Rate (4/5) [4/6 | 4/7 | 4/8 | 4/5 |]
 //#define loraCRC                // Habilita ou disabilita o uso CRC, por padrão o CRC não é usado.
 
 
