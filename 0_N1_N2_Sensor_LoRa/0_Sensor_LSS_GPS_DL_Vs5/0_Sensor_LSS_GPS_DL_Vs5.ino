@@ -51,9 +51,9 @@
 // Parâmetros do LoRa
 #define FREQUENCY_IN_HZ       903E6    // LoRa Frequency
 #define txPower               14       // TX power in dBm, defaults to 17
-#define spreadingFactor       7       // ranges from 6-12,default 7
-#define signalBandwidth       500E3    // signal bandwidth in Hz
-#define codingRateDenominator 5        // denominator of the coding rate
+#define spreadingFactor       12       // ranges from 6-12,default 7
+#define signalBandwidth       125E3    // signal bandwidth in Hz
+#define codingRateDenominator 8        // denominator of the coding rate
 
 //#define loraCRC                // Habilita ou disabilita o uso CRC, por padrão o CRC não é usado.
 
@@ -71,7 +71,7 @@ byte PacoteUL[TAMANHO_PACOTE];
 
 // ============= CAMADA DE REDE
 // Identificação do sensor e tamanho de pacote
-int ID_sensor = 1; // Variável de iIdentificação do sensor que está no pacote de DL byte 8
+int ID_sensor = 2; // Variável de iIdentificação do sensor que está no pacote de DL byte 8
 int ID_gateway = 0;    // Variável com o ID_gateway que estará no pacote de DL byte 10
 
 // ============== CAMADA DE TRANSPORTE

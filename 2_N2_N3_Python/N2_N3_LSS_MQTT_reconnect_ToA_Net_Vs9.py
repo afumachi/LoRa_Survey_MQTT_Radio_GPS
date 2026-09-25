@@ -33,6 +33,7 @@ global recebe_valor_spreadingfactor, recebe_valor_bandwidth, recebe_valor_coding
 global comanda_mudar_radio, contador_pacote_DL, LSS_status, psr_geral, contador_reconfigura, confirma_mudar_radio
 global psrDL_geral, contador_perda_DL, ID_gateway, ID_sensor, Pacote_DL, pacote_recebido, estado_mqtt, radio_configurado
 global estado_lss, toa_entre_medidas, indice_dispositivo_atual, quantidade_de_medidas
+global sf_csv, bw_csv, cr_csv, pw_csv
 
 
 # ===== Configurações MQTT =====
@@ -74,6 +75,12 @@ estado_lss = 0
 perda_PK_RX = 0
 
 #Camada Física
+
+sf_csv = 12
+bw_csv = 125
+cr_csv = 8
+pw_csv = 20
+
 # Variáveis Auxiliares
 recebe_valor_spreadingfactor = 12
 recebe_valor_bandwidth = 125
@@ -251,6 +258,11 @@ def ler_cmd_led_amarelo():
 # def calculo_toa_radio_lora(tamanho_do_pacote, valor_spreadingfactor, valor_bandwidth, valor_codingrate, n_preambulo=8, header_impl=False, crc_on=True, low_dr_opt=None):
 def calculo_toa_radio_lora(n_preambulo=8, header_impl=False, crc_on=True, low_dr_opt=None):
     global toa_entre_medidas, valor_atual_bandwidth, valor_atual_spreadingfactor, valor_atual_codingrate, Tamanho_pacote
+    global sf_csv, bw_csv, cr_csv
+
+    valor_atual_spreadingfactor = sf_csv
+    valor_atual_bandwidth = bw_csv
+    valor_atual_codingrate = cr_csv
     
     # 1. Parâmetros de tempo dos símbolos LoRa
     BANDWIDTH_Hz = valor_atual_bandwidth * 1000 #calcula Bandwidth em Hz
@@ -286,9 +298,8 @@ def calculo_toa_radio_lora(n_preambulo=8, header_impl=False, crc_on=True, low_dr
     
     # Retorna ToA em ms e bitrate em bps
     ToA_ms = (tempo_preambulo + tempo_pacote_toa) * 1000
-    # bitrate = (tamanho_do_pacote * 8) / (ToA_ms / 1000)
-    # bitrate = (SF*((BW*1000)/(2^SF))*(4/(4+CR)))/1000
 
+    # bitrate = (SF*((BW*1000)/(2^SF))*(4/(4+CR)))/1000
     bitrate = (valor_atual_spreadingfactor*((BANDWIDTH_Hz)/(2**valor_atual_spreadingfactor))*(4/(4+valor_CR)))
 
     print("### Time On Air (ToA [ms]): ", ToA_ms)
@@ -339,6 +350,134 @@ def cmd_lora():
    time.sleep(8)
    uplink()
 
+
+#========== DOWNLINK ================
+def downlink():
+   global rssi_DL, rssi_UL, contador_UL, contador_DL, ultimo_pacote_DL, ultimo_pacote_UL
+   global air_quality_indicator, Pacote_DL, medida_atual, comanda_mudar_radio, estado_lss
+   global indice_dispositivo_atual, ID_sensor, quantidade_de_medidas
+   global valor_novo_spreadingfactor, valor_novo_bandwidth, valor_novo_codingrate, valor_novo_potencia_radio
+   global sf_csv, bw_csv, cr_csv, pw_csv
+
+   # Variáveis locais para armazenar as configurações lidas do nó atual no CSV
+   sf_csv = valor_novo_spreadingfactor
+   bw_csv = valor_novo_bandwidth
+   cr_csv = valor_novo_codingrate
+   pw_csv = valor_novo_potencia_radio
+
+   # Leitura das configurações e do endereço do nó sensor a partir do CSV
+   if os.path.exists(caminho_csv_end_devices):
+       try:
+           df_devices = pd.read_csv(caminho_csv_end_devices)
+           
+           if not df_devices.empty:
+               # Garante que o índice não ultrapasse a quantidade de dispositivos salvos
+               if indice_dispositivo_atual >= len(df_devices):
+                   print("[LSS] Todos os nós do arquivo CSV já foram percorridos. Reiniciando lista no primeiro nó...")
+                   indice_dispositivo_atual = 0
+               
+               # Obtém o registro/linha do dispositivo atual
+               dispositivo = df_devices.iloc[indice_dispositivo_atual]
+
+               # Obtém o endereço de rede do sensor
+               endereco_hex_ou_str = str(dispositivo['endereco_rede']).strip()
+               if endereco_hex_ou_str.startswith("0x") or endereco_hex_ou_str.startswith("0X"):
+                   ID_sensor = int(endereco_hex_ou_str, 16)
+               else:
+                   ID_sensor = int(endereco_hex_ou_str)
+
+               # Obtém os parâmetros de rádio configurados para este nó específico
+               sf_csv = int(dispositivo['spreading_factor'])
+               bw_csv = int(dispositivo['bandwidth'])
+               cr_csv = int(dispositivo['coding_rate'])
+               pw_csv = int(dispositivo['potencia_tx'])
+               
+               print(f"[LSS] Enviando Pacote DL para o Nó Sensor [{indice_dispositivo_atual + 1}/{len(df_devices)}]: "
+                     f"Endereço 0x{ID_sensor:02X} ({ID_sensor}) | SF: {sf_csv} | BW: {bw_csv} | CR: {cr_csv} | Potência: {pw_csv}")
+               
+               # Incrementa o índice para a próxima chamada
+               indice_dispositivo_atual += 1
+           else:
+               print("[AVISO] O arquivo end_devices_net_par.csv está vazio. Mantendo valores padrões.")
+       except Exception as e:
+           print(f"[ERRO] Falha ao ler parâmetros do nó em {caminho_csv_end_devices}: {e}")
+   else:
+       print(f"[AVISO] Arquivo {caminho_csv_end_devices} não encontrado. Mantendo valores padrões.")
+
+   # Limpa o pacote para garantir que não tem lixo
+   for i in range(Tamanho_pacote):
+       Pacote_DL[i] = 0
+
+   # Camada PHY / Física - Conversão e Alocação
+   # Converte Bandwidth para representação em Byte (1 = 125, 2 = 250, 3 = 500)
+   if bw_csv == 125:
+       valor_BW = 1
+   elif bw_csv == 250:
+       valor_BW = 2
+   elif bw_csv == 500:
+       valor_BW = 3
+   else:
+       valor_BW = bw_csv
+
+   calculo_toa_radio_lora() # chama função cálculo ToA (Time On Air)
+
+   # Alocação nos Bytes [0] a [3] conforme especificado
+   Pacote_DL[0] = sf_csv      # valor_novo_spreadingfactor
+   Pacote_DL[1] = valor_BW    # valor_BW (bandwidth)
+   Pacote_DL[2] = cr_csv      # valor_novo_codingrate
+   Pacote_DL[3] = pw_csv      # valor_novo_potencia_radio
+
+   # Camada MAC
+   Pacote_DL[4] = int(quantidade_de_medidas / 256)  # MSB
+   Pacote_DL[5] = int(quantidade_de_medidas % 256)  # LSB
+   Pacote_DL[6] = toa_entre_medidas
+   Pacote_DL[7] = comanda_mudar_radio
+   estado_lss = comanda_mudar_radio
+   print("### DOWNLINK ### MÁQUINA ESTADO LORA: ", comanda_mudar_radio)
+
+   # Camada de Rede
+   Pacote_DL[8] = ID_sensor & 0xFF  # Atribui o ID do sensor lido do CSV (Byte de rede)
+   Pacote_DL[10] = ID_gateway
+
+   # Camada de Transporte
+   Pacote_DL[12] = int(medida_atual / 256)
+   Pacote_DL[13] = int(medida_atual % 256)
+
+   # Camada de Aplicação
+   Comando_LED_amarelo = ler_cmd_led_amarelo()
+   Pacote_DL[16] = Comando_LED_amarelo
+
+   # Atualiza arquivo de comando de estado do LoRa
+   with open(caminho_cmd_lora, 'r') as f:
+       linhas = f.readlines()
+
+   linhas[0] = f"{estado_lss}\n"
+
+   with open(caminho_cmd_lora, 'w') as f:
+       f.writelines(linhas)
+
+   # -------- Publica pacote DL no broker MQTT --------
+   Pacote_UL_status.clear()
+   result = client.publish(TOPIC_DL, bytes(Pacote_DL), qos=MQTT_QOS)
+
+   # AGUARDA ACK DO BROKER - QoS1
+   if client.is_connected():
+      try:
+         result.wait_for_publish(timeout=toa_entre_medidas)
+         print(f"Pacote [DL] {medida_atual:03d} publicado no broker para ID_sensor={ID_sensor} | LED={Comando_LED_amarelo}")
+      except RuntimeError as e:
+         print(f"[MQTT Erro] Falha ao aguardar publicação: {e} timeout > tempo entre os pacotes")
+      except Exception as e:
+         print(f"[Erro] Outro erro ocorreu: {e}")
+   else:
+      print("[MQTT] Não foi possível publicar. Cliente desconectado.")
+      estado_mqtt = 0
+      medidas = 0
+      client.disconnect()
+      print("[MQTT] Reconectando ao broker...")
+      client.connect_async(BROKER, PORTA_MQTT, keepalive=15)
+
+'''
 #========== DOWNLINK ================
 def downlink():
    global rssi_DL, rssi_UL, contador_UL, contador_DL, ultimo_pacote_DL, ultimo_pacote_UL
@@ -447,7 +586,7 @@ def downlink():
       client.disconnect()
       print("[MQTT] Reconectando ao broker...")
       client.connect_async(BROKER, PORTA_MQTT, keepalive=15)
-
+'''
 '''   
 def downlink():
    global rssi_DL, rssi_UL, contador_UL, contador_DL, ultimo_pacote_DL, ultimo_pacote_UL
@@ -773,11 +912,11 @@ try:
               # ================ Envio de pacote de DL
               try:
               # ===================== LOOP DE ENVIO DE PACOTES =============
-                    Tempo_inicio_pacote = time.time()                  
+                    Tempo_inicio_pacote = time.time()
 
                     downlink()
                                           
-                    time.sleep(toa_entre_medidas/3)
+                    time.sleep(toa_entre_medidas/4)
 
                     uplink()
 
